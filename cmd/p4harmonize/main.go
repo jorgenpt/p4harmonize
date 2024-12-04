@@ -33,13 +33,16 @@ func PrintUsage() {
 			"%s",
 			"",
 			"Usage:",
-			"\tp4harmonize [--config PATH]",
+			"\tp4harmonize [--config PATH] [--description CHANGEDESC] [--submit]",
 			"\tp4harmonize --version",
 			"\tp4harmonize --help",
 			"Options:",
-			"\t-c, --config PATH     Config file location (default: 'config.toml')",
-			"\t-v, --version         Print just the version number (to stdout)",
-			"\t-h, --help            Print this message (to stderr)",
+			"\t-c, --config PATH             Config file location (default: 'config.toml')",
+			"\t-d, --description CHANGEDESC  Changelist description (default: 'Sync using p4harmonize')",
+			"\t--submit                      Automatically submit the change after harmonizing",
+			"\t-v, --version                 Print just the version number (to stdout)",
+			"\t-v, --version                 Print just the version number (to stdout)",
+			"\t-h, --help                    Print this message (to stderr)",
 			"",
 			"Config files must be in TOML format. See the README for an example.",
 			"",
@@ -62,14 +65,19 @@ func mainExit() int {
 	flag.Usage = PrintUsage
 
 	var cfgPath string
+	var changeDesc string
 	var showVersion bool
 	var showHelp bool
+	var submit bool
 	flag.StringVar(&cfgPath, "c", "config.toml", "config file location")
 	flag.StringVar(&cfgPath, "config", "config.toml", "config file location")
+	flag.StringVar(&changeDesc, "m", "Sync using p4harmonize", "changelist description")
+	flag.StringVar(&changeDesc, "description", "Sync using p4harmonize", "changelist description")
 	flag.BoolVar(&showVersion, "v", false, "show version info")
 	flag.BoolVar(&showVersion, "version", false, "show version info")
 	flag.BoolVar(&showHelp, "h", false, "show version info")
 	flag.BoolVar(&showHelp, "help", false, "show version info")
+	flag.BoolVar(&submit, "submit", false, "automatically submit change")
 	flag.Parse()
 
 	if showVersion {
@@ -108,7 +116,7 @@ func mainExit() int {
 
 	log.Info("Config loaded from %s", cfg.Filename())
 
-	err = Harmonize(log, cfg)
+	err = Harmonize(log, cfg, changeDesc, submit)
 	if err != nil {
 		log.Error("%v", err)
 		return 2

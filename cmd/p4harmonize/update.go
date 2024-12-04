@@ -19,7 +19,7 @@ type srcThreadResults struct {
 	Files      []p4.DepotFile
 }
 
-func Harmonize(log Logger, cfg config.Config) error {
+func Harmonize(log Logger, cfg config.Config, changeDesc string, submit bool) error {
 	var chSrc chan srcThreadResults
 	defer func() {
 		// if we try to early out before our goroutine is done, then wait for it
@@ -143,7 +143,7 @@ func Harmonize(log Logger, cfg config.Config) error {
 	}
 
 	logDst.Info("Creating changelist in destination...")
-	cl, err := p4dst.CreateEmptyChangelist("p4harmonize")
+	cl, err := p4dst.CreateEmptyChangelist(changeDesc)
 	if err != nil {
 		logDst.Error("Unable to create new changelist: %v", err)
 		return fmt.Errorf("error prepping for changes")
@@ -270,15 +270,34 @@ func Harmonize(log Logger, cfg config.Config) error {
 		root = cfg.Dst.ClientRoot
 	}
 
-	log.Warning("Success! All changes are waiting in CL #%d. Please review and submit when ready.", cl)
+	if submit {
+		if len(diff.CaseMismatch) > 0 {
+			log.Error("Due to file casing problems, you will need to re-run p4harmonize.")
+			log.Error("See https://portal.perforce.com/s/article/3448 for more details.")
+		}
 
-	if len(diff.CaseMismatch) > 0 {
-		log.Error("Due to file casing problems, you will need to re-run p4harmonize after submitting the above CL.")
-		log.Error("See https://portal.perforce.com/s/article/3448 for more details.")
+		if err := p4dst.SubmitChangelist(cl); err != nil {
+			logDst.Error("Error submitting CL #%d: %w", cl, err)
+			return fmt.Errorf("error submitting change")
+		}
+
+		if err = p4dst.DeleteClient(p4dst.Client); err != nil {
+			logDst.Error("Error deleting client %s: %w", p4dst.Client, err)
+			return fmt.Errorf("error cleaning up")
+		}
+
+		log.Info("Remember to delete local folder %q", root)
+	} else {
+		log.Warning("Success! All changes are waiting in CL #%d. Please review and submit when ready.", cl)
+
+		if len(diff.CaseMismatch) > 0 {
+			log.Error("Due to file casing problems, you will need to re-run p4harmonize after submitting the above CL.")
+			log.Error("See https://portal.perforce.com/s/article/3448 for more details.")
+		}
+
+		log.Info("Remember to delete workspace %q", cfg.Dst.ClientName)
+		log.Info("and local folder %q", root)
 	}
-
-	log.Info("Remember to delete workspace \"%s\"", cfg.Dst.ClientName)
-	log.Info("and local folder \"%s\"", root)
 
 	return nil
 }

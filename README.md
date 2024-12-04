@@ -58,9 +58,7 @@ new_client_stream = "//test/engine_epic"  # this needs to already exist
 
 While it runs, it outputs status updates and every individual `p4` command it is running so you can follow along.
 
-When it is done, there will be a changelist that must be submitted by hand, giving you a chance to verify the work.
-
-`p4harmonize` will never submit a changelist on its own.
+When it is done, there will be a changelist that must be submitted by hand, giving you a chance to verify the work. You can set what the changelist description is by using `-description "My description"`. If you'd like to automatically submit the changelist, pass `-submit`, but otherwise `p4harmonize` will not submit any changes.
 
 ## Runtime requirements
 
