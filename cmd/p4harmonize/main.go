@@ -33,7 +33,7 @@ func PrintUsage() {
 			"%s",
 			"",
 			"Usage:",
-			"\tp4harmonize [--config PATH] [--description CHANGEDESC] [--submit]",
+			"\tp4harmonize [--config PATH] [--description CHANGEDESC] [--submit] [FILESPEC1] [FILESPEC2...]",
 			"\tp4harmonize --version",
 			"\tp4harmonize --help",
 			"Options:",
@@ -94,12 +94,6 @@ func mainExit() int {
 		return 0
 	}
 
-	if len(flag.Args()) > 0 {
-		fmt.Printf("unrecognized arguments: %v\n", strings.Join(flag.Args(), " "))
-		flag.Usage()
-		return 1
-	}
-
 	start := time.Now()
 	log, close := MakeLogger(frog.New(frog.Auto, frog.POLevel(false), frog.POFieldsLeftMsgRight, frog.POFieldIndent(10)))
 	defer func() {
@@ -116,7 +110,7 @@ func mainExit() int {
 
 	log.Info("Config loaded from %s", cfg.Filename())
 
-	err = Harmonize(log, cfg, changeDesc, submit)
+	err = Harmonize(log, cfg, changeDesc, submit, flag.Args())
 	if err != nil {
 		log.Error("%v", err)
 		return 2

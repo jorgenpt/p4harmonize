@@ -226,7 +226,7 @@ func runTwoServers(log frog.Logger, configSuffix int, src, dst Server, cl int64,
 func buildDepotFilesLists(p4src, p4dst *p4.P4) (srcFiles, dstFiles string, err error) {
 	// helper to grab a list of files from one server
 	getFilesAsString := func(pf *p4.P4) (string, error) {
-		files, err := pf.ListDepotFiles()
+		files, err := pf.ListDepotFiles(nil)
 		if err != nil {
 			return "", err
 		}

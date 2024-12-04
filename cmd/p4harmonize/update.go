@@ -19,7 +19,7 @@ type srcThreadResults struct {
 	Files      []p4.DepotFile
 }
 
-func Harmonize(log Logger, cfg config.Config, changeDesc string, submit bool) error {
+func Harmonize(log Logger, cfg config.Config, changeDesc string, submit bool, fileSpecs []string) error {
 	var chSrc chan srcThreadResults
 	defer func() {
 		// if we try to early out before our goroutine is done, then wait for it
@@ -43,7 +43,7 @@ func Harmonize(log Logger, cfg config.Config, changeDesc string, submit bool) er
 	chSrc = make(chan srcThreadResults)
 	go func() {
 		defer close(chSrc)
-		chSrc <- srcSyncAndList(logSrc, shSrc, cfg)
+		chSrc <- srcSyncAndList(logSrc, shSrc, cfg, fileSpecs)
 	}()
 
 	// Grab dst info and create dst client
@@ -103,7 +103,7 @@ func Harmonize(log Logger, cfg config.Config, changeDesc string, submit bool) er
 	// Grab the full list of files
 
 	logDst.Info("Downloading list of current depot files in destination...")
-	dstFiles, err := p4dst.ListDepotFiles()
+	dstFiles, err := p4dst.ListDepotFiles(fileSpecs)
 	if err != nil {
 		logDst.Error("Failed to list destination files: %v", err)
 		return fmt.Errorf("error prepping destination server")
@@ -365,7 +365,7 @@ func preFlightChecks(log Logger, cfg config.Config) bool {
 
 // srcSyncAndList connects to the source perforce server, syncs to head, then
 // requests a list of all file names and types.
-func srcSyncAndList(logSrc Logger, shSrc *bsh.Bsh, cfg config.Config) srcThreadResults {
+func srcSyncAndList(logSrc Logger, shSrc *bsh.Bsh, cfg config.Config, fileSpecs []string) srcThreadResults {
 	p4src := p4.New(shSrc, cfg.Src.P4Port, cfg.Src.P4User, cfg.Src.P4Charset, cfg.Src.P4Client)
 
 	spec, err := p4src.GetClientSpec()
@@ -388,7 +388,7 @@ func srcSyncAndList(logSrc Logger, shSrc *bsh.Bsh, cfg config.Config) srcThreadR
 
 	logSrc.Info("Downloading list of files with types from source...")
 
-	files, err := p4src.ListDepotFiles()
+	files, err := p4src.ListDepotFiles(fileSpecs)
 	if err != nil {
 		logSrc.Error("Failed to list files from source: %v", err)
 		return srcThreadResults{Success: false}
