@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -65,6 +66,23 @@ func Harmonize(log Logger, cfg config.Config) error {
 		logDst.Error("Failed to create client %s: %w", p4dst.Client, err)
 		return fmt.Errorf("error prepping destination server")
 	}
+
+	// Write a .p4config for the destination
+	p4ConfigName, err := p4dst.GetVariable("P4CONFIG")
+	if err != nil {
+		logDst.Error("Failed to read P4CONFIG variable: %w", err)
+		return fmt.Errorf("error prepping destination workspace")
+	}
+
+	if len(p4ConfigName) != 0 {
+		p4ConfigPath := path.Join(cfg.Dst.ClientRoot, p4ConfigName)
+		logDst.Info("Writing workspace configuration to P4CONFIG (%s)...", p4ConfigPath)
+		p4Config := fmt.Sprintf("P4PORT=%s\nP4USER=%s\nP4CLIENT=%s\n", cfg.Dst.P4Port, cfg.Dst.P4User, cfg.Dst.ClientName)
+		if err := os.WriteFile(p4ConfigPath, []byte(p4Config), 0644); err != nil {
+			logDst.Error("Couldn't write workspace configuration to %s: %v", p4ConfigPath, err)
+		}
+	}
+
 	// set p4dst's client and stream name
 	p4dst.Client = cfg.Dst.ClientName
 	err = p4dst.SetStreamName(cfg.Dst.ClientStream)
